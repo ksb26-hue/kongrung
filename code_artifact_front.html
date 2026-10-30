@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>공릉중학교 학생회 - 담요 공용제</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased">
+  <div class="max-w-md mx-auto bg-white min-h-screen p-6 shadow-sm relative pb-24">
+    
+    <!-- 1. Header -->
+    <div class="mb-6 text-left">
+      <p class="text-xs font-bold text-gray-500 mb-1 tracking-wide">공릉중학교 학생회</p>
+      <h1 class="text-3xl font-extrabold tracking-tight text-gray-900">담요 공용제</h1>
+      <p id="sync-status" class="text-[11px] font-bold text-gray-400 mt-2">시트 연결 중...</p>
+    </div>
+    
+    <!-- 2. Badges -->
+    <div class="mb-6 flex flex-col gap-2.5">
+      <div class="flex items-center text-sm font-medium text-gray-800 bg-white border border-gray-200 rounded-xl px-4 py-3.5 shadow-sm">
+        <span id="weather-icon" class="mr-3 text-lg">⏳</span>
+        <span id="weather-text">날씨 정보 불러오는 중...</span>
+      </div>
+      <div class="flex items-center text-sm font-medium text-gray-800 bg-white border border-gray-200 rounded-xl px-4 py-3.5 shadow-sm">
+        <span class="mr-3 text-lg">✨</span>
+        <span>최근 세탁 / 소독: <strong id="wash-date-text" class="text-gray-900 ml-1">-</strong></span>
+      </div>
+    </div>
+
+    <!-- 3. Notice -->
+    <div class="mb-8 p-4 bg-white border border-gray-200 rounded-xl shadow-sm flex items-start gap-3 relative">
+      <div class="absolute top-5 left-4 w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+      <div class="absolute top-5 left-4 w-2 h-2 bg-blue-500 rounded-full"></div>
+      <span class="text-lg leading-none mt-0.5 ml-5">📢</span>
+      <div>
+        <h3 class="font-bold text-gray-900 text-sm mb-1">공지사항</h3>
+        <p id="notice-text" class="text-xs text-gray-600 leading-relaxed break-keep font-medium">불러오는 중...</p>
+      </div>
+    </div>
+
+    <!-- 4. Calendar Header -->
+    <div class="mb-4 flex justify-between items-center text-left">
+      <h2 id="calendar-title" class="text-lg font-extrabold text-gray-900 tracking-tight">달력</h2>
+      <button onclick="reloadBootstrap()" class="text-[11px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg">새로고침</button>
+    </div>
+
+    <div class="mb-6">
+      <div class="grid grid-cols-7 gap-1.5 text-center text-[11px] mb-2">
+        <div class="text-gray-500 font-bold">일</div>
+        <div class="text-gray-500 font-bold">월</div>
+        <div class="text-gray-500 font-bold">화</div>
+        <div class="text-gray-500 font-bold">수</div>
+        <div class="text-gray-500 font-bold">목</div>
+        <div class="text-gray-500 font-bold">금</div>
+        <div class="text-gray-500 font-bold">토</div>
+      </div>
+      <div id="calendar-grid" class="grid grid-cols-7 gap-1.5 text-center text-sm"></div>
+    </div>
+
+    <!-- 5. Rules -->
+    <details class="group bg-white rounded-xl border border-gray-200 mb-8 shadow-sm">
+      <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-4 text-sm text-gray-900">
+        <span>📖 이용 안내 및 수칙 (필독)</span>
+        <span class="transition group-open:rotate-180 text-gray-400">▼</span>
+      </summary>
+      <div class="text-xs text-gray-600 p-4 pt-0 space-y-2 border-t border-gray-100 mt-2 pt-3 font-medium">
+        <p>- 1인당 하루 1회, 주 2회까지만 대여 가능합니다.</p>
+        <p>- 대여한 담요는 당일 종례 전까지 반드시 반납해야 합니다.</p>
+        <p class="text-gray-900 font-bold">- 무단 연체 및 훼손 시 2주간 예약이 정지됩니다.</p>
+      </div>
+    </details>
+
+    <!-- 6. Bottom Buttons -->
+    <div class="space-y-3 mb-4">
+      <button onclick="openCheckModal()" class="w-full bg-gray-900 hover:bg-black text-white text-sm font-bold py-4 px-5 rounded-xl text-left flex justify-between items-center transition-all shadow-md">
+        <span>📅 내 예약 확인 및 취소</span>
+        <span class="text-gray-400 text-xs font-semibold">조회 &gt;</span>
+      </button>
+      <button onclick="document.getElementById('suggest-modal').classList.remove('hidden')" class="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-900 text-sm font-bold py-4 px-5 rounded-xl text-left flex justify-between items-center transition-all shadow-sm">
+        <span>🚨 담요 훼손 신고 및 건의하기</span>
+        <span class="text-gray-400 text-xs font-semibold">익명 전송 &gt;</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Booking Modal -->
+  <div id="booking-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
+      <h2 class="text-2xl font-extrabold mb-1 text-gray-900 tracking-tight">담요 예약하기</h2>
+      <p id="modal-date-text" class="text-sm font-bold text-gray-500 mb-6 border-b border-gray-100 pb-3"></p>
+      
+      <div class="space-y-4">
+        <div class="flex gap-3">
+          <div class="flex-1">
+            <label class="block text-xs font-bold text-gray-700 mb-1.5">학번</label>
+            <input type="number" id="input-id" placeholder="예: 30101" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-600 focus:bg-white transition">
+          </div>
+          <div class="flex-1">
+            <label class="block text-xs font-bold text-gray-700 mb-1.5">이름</label>
+            <input type="text" id="input-name" placeholder="홍길동" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-600 focus:bg-white transition">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1.5">전화번호</label>
+          <input type="tel" id="input-phone" inputmode="numeric" maxlength="13" placeholder="010-0000-0000" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-600 focus:bg-white transition">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1.5">방문 교시 (수령 시간)</label>
+          <select id="time-select" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-medium focus:outline-none focus:border-blue-600 focus:bg-white transition appearance-none cursor-pointer text-gray-900">
+            <option value="" disabled selected>시간을 선택해주세요</option>
+            <option value="morning">아침시간 08:40</option>
+            <option value="lunch">점심시간 01:00</option>
+          </select>
+          <p id="time-warning" class="text-[10px] font-bold text-red-500 mt-1.5 hidden">* 이미 지나간 시간은 선택할 수 없습니다.</p>
+        </div>
+      </div>
+
+      <div class="mt-6 bg-red-50 border border-red-200 rounded-xl p-3.5 text-center shadow-sm">
+        <p class="text-red-600 font-extrabold text-sm mb-0.5 tracking-tight">🚨 잊지마세요!</p>
+        <p class="text-red-500 font-bold text-xs tracking-tight">대여한 담요는 당일 방과후에 반드시 반납해야 합니다.</p>
+      </div>
+      
+      <div class="mt-6 flex gap-2.5">
+        <button onclick="closeModal('booking-modal')" class="flex-1 bg-gray-100 text-gray-700 font-bold py-3.5 rounded-xl text-sm transition hover:bg-gray-200">취소</button>
+        <button id="btn-submit-booking" onclick="submitBooking()" class="w-2/3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-sm shadow-md transition">예약 확정하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Check Modal -->
+  <div id="check-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
+      <h2 class="text-2xl font-extrabold mb-1 text-gray-900 tracking-tight">내 예약 확인</h2>
+      <p class="text-xs text-gray-500 font-medium mb-4">다른 기기에서도 학번으로 조회할 수 있습니다.</p>
+      <div id="check-lookup-box" class="mb-4 hidden">
+        <div class="flex gap-2 mb-2">
+          <input type="number" id="lookup-id" placeholder="학번" class="w-1/3 bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-600">
+          <input type="text" id="lookup-name" placeholder="이름 (선택)" class="flex-1 bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-600">
+        </div>
+        <button id="btn-lookup" onclick="lookupMyBooking()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition">학번으로 조회</button>
+      </div>
+      <div id="check-content" class="mb-2"></div>
+      <div id="cancel-reason-box" class="hidden mt-4 pt-5 border-t border-gray-100">
+        <label class="block text-xs font-bold text-gray-700 mb-2">취소 사유 <span class="text-gray-400 font-medium">(선택)</span></label>
+        <textarea id="cancel-reason" rows="2" placeholder="예: 오늘 조퇴하게 되어서요." class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-gray-900 focus:bg-white transition mb-4 text-gray-900"></textarea>
+        <button id="btn-confirm-cancel" onclick="confirmCancel()" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-3.5 rounded-xl text-sm shadow-md transition tracking-wide">예약 취소 확정</button>
+      </div>
+      <div class="mt-3">
+        <button onclick="closeModal('check-modal')" class="w-full bg-gray-100 text-gray-700 font-bold py-3.5 rounded-xl text-sm transition hover:bg-gray-200">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suggestion Modal -->
+  <div id="suggest-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
+      <h2 class="text-2xl font-extrabold mb-1 text-gray-900 tracking-tight">익명 건의함</h2>
+      <p class="text-sm font-medium text-gray-500 mb-5 border-b border-gray-100 pb-3">훼손된 담요 번호나 건의사항을 남겨주세요.</p>
+      <textarea id="suggest-content" rows="4" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 text-sm focus:outline-none focus:border-gray-900 focus:bg-white transition text-gray-900" placeholder="내용을 입력하세요..."></textarea>
+      <div class="mt-6 flex gap-2.5">
+        <button onclick="closeModal('suggest-modal')" class="flex-1 bg-gray-100 text-gray-700 font-bold py-3.5 rounded-xl text-sm transition hover:bg-gray-200">취소</button>
+        <button id="btn-submit-suggest" onclick="submitSuggestion()" class="w-2/3 bg-gray-900 hover:bg-black text-white font-bold py-3.5 rounded-xl text-sm shadow-md transition">전송하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Alert -->
+  <div id="custom-alert" class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl max-w-[300px] w-full p-6 shadow-2xl text-center">
+      <div id="alert-icon" class="text-3xl mb-3">🔔</div>
+      <h3 id="alert-title" class="text-lg font-extrabold text-gray-900 mb-2">알림</h3>
+      <p id="alert-message" class="text-sm text-gray-600 font-medium mb-6 whitespace-pre-line"></p>
+      <button onclick="closeModal('custom-alert')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition shadow-sm">확인</button>
+    </div>
+  </div>
+
+  <script>
+    const CONFIG = {
+      SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbzEpoh7dc28o2HDpIfQ_7spB9TkouyamzmVdnaeD1eGKCh_6smt26xfuJGxdSVGJpbGNQ/exec',
+      DEVICE_KEY_NAME: 'blanket_device_key_v1'
+    };
+
+    let currentSelectedDate = ''; // YYYY-MM-DD
+    let myBooking = null;
+    let appState = {
+      notice: '',
+      washDate: '-',
+      quota: 9,
+      year: new Date().getFullYear(),
+      month: new Date().getMonth() + 1,
+      counts: {}
+    };
+    let busy = false;
+
+    function pad2(n) { return String(n).padStart(2, '0'); }
+
+    function todayYmd() {
+      const d = new Date();
+      return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    }
+
+    /** 어떤 형태의 날짜든 YYYY-MM-DD 로 정규화 (서울 기준) */
+    function toYmd(v) {
+      if (!v) return '';
+      const s = String(v).trim();
+      // 이미 YYYY-MM-DD 이고 시간 정보가 없으면 그대로 (타임존 재해석 방지)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      if (/^\d{4}-\d{2}-\d{2}/.test(s) && !/[T\s]/.test(s.slice(10))) return s.slice(0, 10);
+      const d = (v instanceof Date) ? v : new Date(s);
+      if (isNaN(d.getTime())) return '';
+      try {
+        return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); // YYYY-MM-DD
+      } catch (e) {
+        return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+      }
+    }
+
+    function formatKoDate(v) {
+      const ymd = toYmd(v);
+      if (!ymd) return String(v || '-');
+      const [y, m, d] = ymd.split('-').map(Number);
+      return `${y}년 ${m}월 ${d}일`;
+    }
+
+    function formatKoShort(v) {
+      const ymd = toYmd(v);
+      if (!ymd) return String(v || '-');
+      const [, m, d] = ymd.split('-').map(Number);
+      return `${m}월 ${d}일`;
+    }
+
+    function formatWashLabel(v) {
+      if (!v || v === '-') return '-';
+      const s = String(v);
+      if (/\d+\s*월/.test(s) && !s.includes('GMT')) return s;
+      return formatKoShort(s);
+    }
+
+    function normalizeCounts(raw) {
+      const out = {};
+      Object.keys(raw || {}).forEach((k) => {
+        const ymd = toYmd(k) || k;
+        out[ymd] = (out[ymd] || 0) + Number(raw[k] || 0);
+      });
+      return out;
+    }
+
+    function getDeviceKey() {
+      let key = localStorage.getItem(CONFIG.DEVICE_KEY_NAME);
+      if (!key) {
+        key = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem(CONFIG.DEVICE_KEY_NAME, key);
+      }
+      return key;
+    }
+
+    function setSyncStatus(text, ok) {
+      const el = document.getElementById('sync-status');
+      el.innerText = text;
+      el.className = 'text-[11px] font-bold mt-2 ' + (ok ? 'text-emerald-600' : 'text-gray-400');
+    }
+
+    function customAlert(message, title = '알림', icon = '🔔') {
+      document.getElementById('alert-title').innerText = title;
+      document.getElementById('alert-message').innerText = message;
+      document.getElementById('alert-icon').innerText = icon;
+      document.getElementById('custom-alert').classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function flattenParams(obj) {
+      const out = {};
+      Object.keys(obj || {}).forEach((k) => {
+        const v = obj[k];
+        if (v == null) return;
+        out[k] = typeof v === 'object' ? JSON.stringify(v) : String(v);
+      });
+      return out;
+    }
+
+    async function apiCall(payload, timeoutMs = 20000) {
+      const params = flattenParams(payload);
+      const q = new URLSearchParams(params);
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        // Apps Script는 POST가 브라우저에서 자주 멈추므로 GET을 기본으로 사용
+        const res = await fetch(`${CONFIG.SHEETS_WEBAPP_URL}?${q.toString()}`, {
+          method: 'GET',
+          redirect: 'follow',
+          signal: ctrl.signal
+        });
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          throw new Error('Apps Script 응답이 JSON이 아닙니다. Code.gs 재배포를 확인하세요.');
+        }
+      } catch (err) {
+        if (err && err.name === 'AbortError') {
+          throw new Error('서버 응답이 너무 오래 걸립니다. 잠시 후 다시 시도해주세요.');
+        }
+        throw err;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function apiGet(params) { return apiCall(params); }
+    async function apiPost(payload) { return apiCall(payload); }
+
+    async function fetchWeather() {
+      try {
+        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current_weather=true&timezone=Asia%2FSeoul');
+        const data = await res.json();
+        const temp = Math.round(data.current_weather.temperature);
+        const code = data.current_weather.weathercode;
+        let icon = '🌤️';
+        let desc = '맑음';
+        if (code === 0) { icon = '☀️'; desc = '맑음'; }
+        else if (code >= 1 && code <= 3) { icon = '⛅'; desc = '구름조금'; }
+        else if (code >= 45 && code <= 48) { icon = '🌫️'; desc = '안개'; }
+        else if (code >= 51 && code <= 67) { icon = '🌧️'; desc = '비'; }
+        else if (code >= 71 && code <= 77) { icon = '❄️'; desc = '눈'; }
+        else if (code >= 95) { icon = '⛈️'; desc = '천둥번개'; }
+        document.getElementById('weather-icon').innerText = icon;
+        document.getElementById('weather-text').innerHTML = `현재 날씨: ${desc} (<strong class="text-gray-900">${temp}°C</strong>)`;
+      } catch (e) {
+        document.getElementById('weather-icon').innerText = '☁️';
+        document.getElementById('weather-text').innerHTML = '현재 날씨: 정보 없음';
+      }
+    }
+
+    function applyBootstrap(data) {
+      appState.notice = data.notice || '';
+      appState.washDate = data.washDate || '-';
+      appState.quota = Number(data.quota) || 9;
+      appState.year = Number(data.year) || new Date().getFullYear();
+      appState.month = Number(data.month) || (new Date().getMonth() + 1);
+      appState.counts = normalizeCounts(data.counts || {});
+      myBooking = data.myBooking || null;
+      if (myBooking && myBooking.date) myBooking.date = toYmd(myBooking.date) || myBooking.date;
+
+      document.getElementById('notice-text').innerText = appState.notice || '등록된 공지가 없습니다.';
+      document.getElementById('wash-date-text').innerText = formatWashLabel(appState.washDate);
+      document.getElementById('calendar-title').innerText = `${appState.year}년 ${appState.month}월`;
+      renderCalendar();
+    }
+
+    async function reloadBootstrap() {
+      setSyncStatus('시트 동기화 중...', false);
+      try {
+        const data = await apiGet({
+          action: 'bootstrap',
+          deviceKey: getDeviceKey()
+        });
+        if (!data.ok) throw new Error(data.error || 'bootstrap 실패');
+        applyBootstrap(data);
+        setSyncStatus('Google Sheets 연결됨', true);
+      } catch (err) {
+        console.error(err);
+        setSyncStatus('시트 연결 실패 — setup.md 배포 확인', false);
+        // 오프라인 폴백: 현재 달력만이라도 표시
+        renderCalendar();
+        customAlert('구글 시트 연결에 실패했습니다.\nblanket-sheets-setup.md 대로 Apps Script를 배포했는지 확인해주세요.', '연결 오류', '⚠️');
+      }
+    }
+
+    function remainingFor(ymd) {
+      const used = Number(appState.counts[ymd] || 0);
+      return Math.max(0, appState.quota - used);
+    }
+
+    function renderCalendar() {
+      const grid = document.getElementById('calendar-grid');
+      grid.innerHTML = '';
+      const year = appState.year;
+      const month = appState.month;
+      const first = new Date(year, month - 1, 1);
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const offset = first.getDay();
+      const today = todayYmd();
+
+      for (let i = 0; i < offset; i++) {
+        grid.innerHTML += '<div></div>';
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const ymd = `${year}-${pad2(month)}-${pad2(day)}`;
+        const left = remainingFor(ymd);
+
+        if (ymd < today) {
+          grid.innerHTML += `
+            <div class="rounded-xl p-2 flex flex-col items-center justify-center min-h-[55px] bg-gray-50 text-gray-400 opacity-60">
+              <span class="font-bold text-[13px]">${day}</span>
+              <span class="text-[9px] font-bold mt-0.5 tracking-tighter">마감</span>
+            </div>`;
+        } else if (left <= 0) {
+          grid.innerHTML += `
+            <div class="rounded-xl p-2 flex flex-col items-center justify-center min-h-[55px] bg-gray-100 text-gray-400">
+              <span class="font-bold text-[13px]">${day}</span>
+              <span class="text-[9px] font-bold mt-0.5 tracking-tighter">마감 0/${appState.quota}</span>
+            </div>`;
+        } else if (ymd === today) {
+          grid.innerHTML += `
+            <div onclick="openBookingModal('${ymd}')" class="rounded-xl p-2 flex flex-col items-center justify-center min-h-[55px] bg-blue-600 text-white cursor-pointer shadow-md transform transition active:scale-95">
+              <span class="font-extrabold text-[13px]">${day}</span>
+              <span class="text-[9px] font-bold text-blue-100 mt-0.5 tracking-tighter">잔여 ${left}/${appState.quota}</span>
+            </div>`;
+        } else {
+          grid.innerHTML += `
+            <div onclick="openBookingModal('${ymd}')" class="rounded-xl p-2 flex flex-col items-center justify-center min-h-[55px] bg-white border border-gray-200 text-gray-900 cursor-pointer shadow-sm transform transition active:scale-95 hover:border-gray-400">
+              <span class="font-extrabold text-[13px]">${day}</span>
+              <span class="text-[9px] font-bold text-gray-500 mt-0.5 tracking-tighter">잔여 ${left}/${appState.quota}</span>
+            </div>`;
+        }
+      }
+    }
+
+    function openBookingModal(ymd) {
+      if (myBooking) {
+        customAlert('이미 이 기기로 예약한 내역이 있습니다.\n확인 및 취소는 하단 버튼을 이용해주세요.', '안내', '⚠️');
+        return;
+      }
+      if (remainingFor(ymd) <= 0) {
+        customAlert('해당 날짜 잔여 담요가 없습니다.', '마감', '⏳');
+        return;
+      }
+
+      currentSelectedDate = ymd;
+      document.getElementById('booking-modal').classList.remove('hidden');
+      document.getElementById('modal-date-text').innerText = formatKoDate(ymd);
+
+      const select = document.getElementById('time-select');
+      const warning = document.getElementById('time-warning');
+      select.value = '';
+      select.options[1].disabled = false;
+      select.options[1].text = '아침시간 08:40';
+      select.options[2].disabled = false;
+      select.options[2].text = '점심시간 01:00';
+      warning.classList.add('hidden');
+
+      if (ymd === todayYmd()) {
+        const now = new Date();
+        const hour = now.getHours();
+        const min = now.getMinutes();
+        if (hour > 8 || (hour === 8 && min >= 40)) {
+          select.options[1].disabled = true;
+          select.options[1].text = '아침시간 08:40 (마감)';
+        }
+        if (hour >= 13) {
+          select.options[2].disabled = true;
+          select.options[2].text = '점심시간 01:00 (마감)';
+        }
+        if (select.options[1].disabled || select.options[2].disabled) {
+          warning.classList.remove('hidden');
+        }
+      }
+    }
+
+    async function submitBooking() {
+      if (busy) return;
+      const id = document.getElementById('input-id').value.trim();
+      const name = document.getElementById('input-name').value.trim();
+      const phone = document.getElementById('input-phone').value.trim();
+      const select = document.getElementById('time-select');
+
+      if (!id || !name || !phone) {
+        customAlert('학번, 이름, 전화번호를 모두 입력해주세요.', '입력 오류', '✍️');
+        return;
+      }
+      if (!select.value) {
+        customAlert('방문 교시(수령 시간)를 선택해주세요.', '시간 선택', '⏰');
+        return;
+      }
+      if (select.options[select.selectedIndex].disabled) {
+        customAlert('이미 마감된 시간입니다.\n다른 시간을 선택해주세요.', '시간 마감', '⏳');
+        return;
+      }
+
+      const timeText = select.options[select.selectedIndex].text.replace(' (마감)', '');
+      const btn = document.getElementById('btn-submit-booking');
+      busy = true;
+      btn.innerText = '저장 중...';
+      btn.disabled = true;
+
+      try {
+        const data = await apiPost({
+          action: 'createBooking',
+          date: currentSelectedDate,
+          time: timeText,
+          timeKey: select.value,
+          studentId: id,
+          name,
+          phone,
+          deviceKey: getDeviceKey()
+        });
+        if (!data.ok) throw new Error(data.error || '예약 실패');
+
+        myBooking = data.booking;
+        if (myBooking && myBooking.date) myBooking.date = toYmd(myBooking.date) || myBooking.date;
+        if (data.counts) appState.counts = normalizeCounts(data.counts);
+        else if (myBooking && myBooking.date) {
+          appState.counts[myBooking.date] = (appState.counts[myBooking.date] || 0) + 1;
+        }
+        renderCalendar();
+        closeModal('booking-modal');
+        customAlert('예약이 확정되었습니다.\n\n🚨 당일 방과후 반납을 꼭 지켜주세요!', '예약 완료', '✅');
+
+        document.getElementById('input-id').value = '';
+        document.getElementById('input-name').value = '';
+        document.getElementById('input-phone').value = '';
+        document.getElementById('time-select').value = '';
+      } catch (err) {
+        customAlert(String(err.message || err), '예약 실패', '⚠️');
+      } finally {
+        busy = false;
+        btn.innerText = '예약 확정하기';
+        btn.disabled = false;
+      }
+    }
+
+    function renderCheckContent() {
+      const content = document.getElementById('check-content');
+      const lookupBox = document.getElementById('check-lookup-box');
+      const reasonBox = document.getElementById('cancel-reason-box');
+      reasonBox.classList.add('hidden');
+      document.getElementById('cancel-reason').value = '';
+
+      if (myBooking) {
+        lookupBox.classList.add('hidden');
+        const dateLabel = formatKoShort(myBooking.date);
+        const timeLabel = String(myBooking.time || '').split(' ')[0];
+        content.innerHTML = `
+          <div class="flex justify-between items-center bg-gray-50 border border-gray-200 p-4 rounded-xl shadow-sm">
+            <div>
+              <p class="text-[11px] font-black text-gray-900 mb-1 tracking-wide">예약 완료</p>
+              <p class="font-extrabold text-gray-900 text-[15px] tracking-tight">${dateLabel} - ${timeLabel}</p>
+              <p class="text-[11px] text-gray-500 font-bold mt-1">${myBooking.studentId || ''} ${myBooking.name || ''}</p>
+            </div>
+            <button onclick="document.getElementById('cancel-reason-box').classList.remove('hidden')" class="bg-white text-gray-700 border border-gray-300 hover:border-gray-500 hover:bg-gray-100 px-3.5 py-2 rounded-lg text-xs font-bold transition">취소</button>
+          </div>`;
+      } else {
+        lookupBox.classList.remove('hidden');
+        content.innerHTML = `
+          <div class="bg-gray-50 border border-gray-200 p-4 rounded-xl text-center shadow-sm">
+            <p class="text-sm font-bold text-gray-500">이 기기 예약이 없습니다.<br>아래에서 학번으로 조회하세요.</p>
+          </div>`;
+      }
+    }
+
+    function openCheckModal() {
+      document.getElementById('check-modal').classList.remove('hidden');
+      renderCheckContent();
+    }
+
+    async function lookupMyBooking() {
+      if (busy) return;
+      const studentId = document.getElementById('lookup-id').value.trim();
+      const name = document.getElementById('lookup-name').value.trim();
+      if (!studentId) {
+        customAlert('학번을 입력해주세요.', '입력 오류', '✍️');
+        return;
+      }
+      const btn = document.getElementById('btn-lookup');
+      busy = true;
+      btn.innerText = '조회 중...';
+      btn.disabled = true;
+      try {
+        const data = await apiPost({ action: 'lookupBooking', studentId, name });
+        if (!data.ok) throw new Error(data.error || '조회 실패');
+        myBooking = data.booking;
+        if (myBooking && myBooking.date) myBooking.date = toYmd(myBooking.date) || myBooking.date;
+        renderCheckContent();
+      } catch (err) {
+        customAlert(String(err.message || err), '조회 실패', '⚠️');
+      } finally {
+        busy = false;
+        btn.innerText = '학번으로 조회';
+        btn.disabled = false;
+      }
+    }
+
+    async function confirmCancel() {
+      if (busy || !myBooking) return;
+      const btn = document.getElementById('btn-confirm-cancel');
+      busy = true;
+      btn.innerText = '취소 중...';
+      btn.disabled = true;
+      try {
+        const data = await apiPost({
+          action: 'cancelBooking',
+          bookingId: myBooking.id || '',
+          deviceKey: getDeviceKey(),
+          studentId: myBooking.studentId || '',
+          cancelReason: document.getElementById('cancel-reason').value.trim()
+        });
+        if (!data.ok) throw new Error(data.error || '취소 실패');
+        myBooking = null;
+        if (data.counts) appState.counts = normalizeCounts(data.counts);
+        renderCalendar();
+        closeModal('check-modal');
+        customAlert('예약이 정상적으로 취소되었습니다.', '취소 완료', '🗑️');
+      } catch (err) {
+        customAlert(String(err.message || err), '취소 실패', '⚠️');
+      } finally {
+        busy = false;
+        btn.innerText = '예약 취소 확정';
+        btn.disabled = false;
+      }
+    }
+
+    async function submitSuggestion() {
+      if (busy) return;
+      const content = document.getElementById('suggest-content').value.trim();
+      if (!content) {
+        customAlert('내용을 입력해주세요.', '입력 오류', '✍️');
+        return;
+      }
+      const btn = document.getElementById('btn-submit-suggest');
+      busy = true;
+      btn.innerText = '전송 중...';
+      btn.disabled = true;
+      try {
+        const data = await apiPost({ action: 'addSuggestion', content });
+        if (!data.ok) throw new Error(data.error || '전송 실패');
+        document.getElementById('suggest-content').value = '';
+        closeModal('suggest-modal');
+        customAlert('소중한 의견이 익명으로 안전하게 전송되었습니다.\n감사합니다.', '전송 완료', '✉️');
+      } catch (err) {
+        customAlert(String(err.message || err), '전송 실패', '⚠️');
+      } finally {
+        busy = false;
+        btn.innerText = '전송하기';
+        btn.disabled = false;
+      }
+    }
+
+    function formatPhone(value) {
+      const digits = String(value || '').replace(/\D/g, '').slice(0, 11);
+      if (digits.length <= 3) return digits;
+      if (digits.length <= 7) return digits.slice(0, 3) + '-' + digits.slice(3);
+      return digits.slice(0, 3) + '-' + digits.slice(3, 7) + '-' + digits.slice(7);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchWeather();
+      // 시트 year/month 오기 전에도 현재 달 표시
+      appState.year = new Date().getFullYear();
+      appState.month = new Date().getMonth() + 1;
+      document.getElementById('calendar-title').innerText = `${appState.year}년 ${appState.month}월`;
+      renderCalendar();
+      reloadBootstrap();
+
+      const phoneInput = document.getElementById('input-phone');
+      phoneInput.addEventListener('input', () => {
+        phoneInput.value = formatPhone(phoneInput.value);
+      });
+    });
+  </script>
+</body>
+</html>

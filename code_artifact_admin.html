@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>관리자 대시보드 - 담요 공용제</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased relative min-h-screen">
+
+  <div id="login-screen" class="absolute inset-0 z-50 bg-gray-50 flex items-center justify-center p-6">
+    <div class="bg-white p-8 rounded-2xl shadow-sm w-full max-w-sm text-center border border-gray-200">
+      <div class="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm">🔒</div>
+      <h2 class="text-2xl font-extrabold text-gray-900 mb-1 tracking-tight">관리자 로그인</h2>
+      <p class="text-sm font-bold text-gray-500 mb-6">대시보드 PIN 번호를 입력해주세요.</p>
+      <input type="password" id="pin-input" placeholder="****" class="w-full bg-gray-50 border border-gray-200 p-4 rounded-xl text-center text-2xl font-black tracking-[0.5em] focus:outline-none focus:border-gray-900 focus:bg-white transition mb-2" onkeypress="if(event.key === 'Enter') checkPin()">
+      <p id="login-error" class="text-xs font-extrabold text-red-500 h-4 mb-4 opacity-0 transition-opacity">비밀번호가 일치하지 않습니다.</p>
+      <button onclick="checkPin()" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-4 rounded-xl shadow-md transition-all active:scale-95">입장하기</button>
+    </div>
+  </div>
+
+  <div id="dashboard-screen" class="hidden max-w-md mx-auto p-5 pb-24">
+    <div class="mb-6">
+      <p class="text-xs font-bold text-gray-500 mb-1 tracking-wide">공릉중학교 학생회</p>
+      <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 mb-1">⚙️ 관리자 대시보드</h1>
+      <p id="admin-sync" class="text-[11px] font-bold text-gray-400 mb-4">시트 연결 대기</p>
+      <div class="flex gap-2">
+        <button onclick="downloadCsv()" class="flex-1 bg-gray-900 hover:bg-black text-white text-sm font-bold py-3.5 px-4 rounded-xl shadow-sm transition-all active:scale-95">📥 CSV</button>
+        <button onclick="loadAdminData()" class="flex-1 bg-white border border-gray-200 text-gray-900 text-sm font-bold py-3.5 px-4 rounded-xl shadow-sm transition-all active:scale-95">🔄 새로고침</button>
+        <button onclick="logoutAdmin()" class="bg-white border border-gray-200 text-gray-500 text-sm font-bold py-3.5 px-4 rounded-xl shadow-sm transition-all active:scale-95">로그아웃</button>
+      </div>
+    </div>
+
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-yellow-400 mb-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-lg">📢</span>
+        <h3 class="font-extrabold text-gray-900 text-sm">공지사항 설정</h3>
+      </div>
+      <div class="flex flex-col gap-3">
+        <textarea id="admin-notice" rows="2" class="w-full bg-gray-50 border border-gray-200 p-3 text-sm rounded-xl text-gray-900 font-medium focus:outline-none focus:border-yellow-500 focus:bg-white transition" placeholder="학생 페이지에 띄울 공지..."></textarea>
+        <button onclick="saveSettings()" class="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm py-3 rounded-xl font-extrabold shadow-sm transition-colors">공지 업데이트</button>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3 mb-6">
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-red-500 flex justify-between items-center">
+        <h3 class="font-bold text-gray-700 text-sm">🚨 미반납자</h3>
+        <p class="text-2xl font-extrabold text-gray-900 tracking-tighter" id="stat-unreturned">0<span class="text-sm font-bold text-gray-500 ml-1 tracking-normal">명</span></p>
+      </div>
+
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-blue-600 flex flex-col gap-3">
+        <h3 class="font-bold text-gray-700 text-sm">⚙️ 하루 정원 설정</h3>
+        <div class="flex items-center gap-2">
+          <input type="number" id="admin-quota" value="9" class="flex-1 bg-gray-50 border border-gray-200 p-2.5 text-center rounded-lg font-bold text-gray-900 focus:outline-none focus:border-blue-600">
+          <span class="text-sm font-bold text-gray-500 w-12 text-center">개</span>
+          <button onclick="saveSettings()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-4 py-3 rounded-lg font-bold transition">저장</button>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-teal-500 flex flex-col gap-3">
+        <h3 class="font-bold text-gray-700 text-sm">✨ 최근 세탁일</h3>
+        <div class="flex items-center gap-2">
+          <input type="text" id="admin-wash" placeholder="예: 10월 28일" class="flex-1 bg-gray-50 border border-gray-200 p-2.5 text-sm rounded-lg font-bold text-gray-900 focus:outline-none focus:border-teal-500">
+          <button onclick="saveSettings()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-4 py-3 rounded-lg font-bold transition">저장</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
+      <div class="p-4 border-b border-gray-100 bg-gray-50">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-extrabold text-gray-900">📋 예약 현황</h2>
+          <span id="today-count-badge" class="bg-gray-200 text-gray-700 text-[10px] font-bold px-2.5 py-1 rounded-full">총 0명</span>
+        </div>
+        <div class="grid grid-cols-4 gap-1.5">
+          <button onclick="setBookingFilter('upcoming')" id="filter-upcoming" class="booking-filter text-[11px] font-bold py-2 rounded-lg bg-blue-600 text-white">예정</button>
+          <button onclick="setBookingFilter('today')" id="filter-today" class="booking-filter text-[11px] font-bold py-2 rounded-lg bg-gray-100 text-gray-600">오늘</button>
+          <button onclick="setBookingFilter('unreturned')" id="filter-unreturned" class="booking-filter text-[11px] font-bold py-2 rounded-lg bg-gray-100 text-gray-600">미반납</button>
+          <button onclick="setBookingFilter('all')" id="filter-all" class="booking-filter text-[11px] font-bold py-2 rounded-lg bg-gray-100 text-gray-600">전체</button>
+        </div>
+        <p class="text-[10px] text-gray-400 font-bold mt-2">시트 <strong class="text-gray-600">예약</strong> 탭과 동기화됩니다.</p>
+      </div>
+      <div id="booking-list" class="divide-y divide-gray-100 max-h-96 overflow-y-auto"></div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
+      <div class="p-4 border-b border-gray-100 bg-gray-50">
+        <h2 class="text-sm font-extrabold text-gray-900">🚫 페널티 부과 및 관리</h2>
+      </div>
+      <div class="p-4 border-b border-gray-100 bg-white flex flex-col gap-2">
+        <div class="flex gap-2">
+          <input type="number" id="penalty-id" placeholder="학번 (예: 30101)" class="w-1/3 bg-gray-50 border border-gray-200 p-2.5 text-sm rounded-lg font-bold text-gray-900 focus:outline-none focus:border-red-500">
+          <input type="text" id="penalty-reason" placeholder="사유 (예: 미반납)" class="flex-1 bg-gray-50 border border-gray-200 p-2.5 text-sm rounded-lg font-bold text-gray-900 focus:outline-none focus:border-red-500">
+        </div>
+        <button onclick="addPenalty()" class="w-full bg-red-600 hover:bg-red-700 text-white text-sm py-3 rounded-lg font-bold transition shadow-sm mt-1">페널티 부과하기</button>
+      </div>
+      <div id="blacklist-container" class="divide-y divide-gray-100 max-h-60 overflow-y-auto bg-gray-50 text-sm"></div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+      <div class="p-4 border-b border-gray-100 bg-gray-50">
+        <h2 class="text-sm font-extrabold text-gray-900">📥 익명 건의함</h2>
+      </div>
+      <div id="suggestions-container" class="divide-y divide-gray-100 max-h-60 overflow-y-auto bg-gray-50 text-sm"></div>
+    </div>
+  </div>
+
+  <div id="admin-toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3.5 rounded-full shadow-xl font-bold text-sm transition-opacity duration-300 opacity-0 pointer-events-none z-[100] whitespace-nowrap">
+    메시지 내용
+  </div>
+
+  <script>
+    const CONFIG = {
+      SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbzEpoh7dc28o2HDpIfQ_7spB9TkouyamzmVdnaeD1eGKCh_6smt26xfuJGxdSVGJpbGNQ/exec',
+      ADMIN_PIN: '2825',
+      AUTH_KEY: 'blanket_admin_auth_v1'
+    };
+
+    let adminPin = '';
+    let bookingFilter = 'upcoming';
+    let adminData = {
+      bookings: [],
+      todayBookings: [],
+      upcomingBookings: [],
+      unreturnedList: [],
+      blacklist: [],
+      suggestions: [],
+      unreturned: 0,
+      today: ''
+    };
+
+    function pad2(n) { return String(n).padStart(2, '0'); }
+
+    function toYmd(v) {
+      if (!v) return '';
+      const s = String(v).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      if (/^\d{4}-\d{2}-\d{2}/.test(s) && !/[T\s]/.test(s.slice(10))) return s.slice(0, 10);
+      const d = (v instanceof Date) ? v : new Date(s);
+      if (isNaN(d.getTime())) return '';
+      try {
+        return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+      } catch (e) {
+        return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+      }
+    }
+
+    function formatKoShort(v) {
+      const ymd = toYmd(v);
+      if (!ymd) return String(v || '-');
+      const [, m, d] = ymd.split('-').map(Number);
+      return `${m}월 ${d}일`;
+    }
+
+    function flattenParams(obj) {
+      const out = {};
+      Object.keys(obj || {}).forEach((k) => {
+        const v = obj[k];
+        if (v == null) return;
+        out[k] = typeof v === 'object' ? JSON.stringify(v) : String(v);
+      });
+      return out;
+    }
+
+    async function apiCall(payload, timeoutMs = 20000) {
+      const q = new URLSearchParams(flattenParams(payload));
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const res = await fetch(`${CONFIG.SHEETS_WEBAPP_URL}?${q.toString()}`, {
+          method: 'GET',
+          redirect: 'follow',
+          signal: ctrl.signal
+        });
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          throw new Error('Apps Script 응답이 JSON이 아닙니다. Code.gs 재배포를 확인하세요.');
+        }
+      } catch (err) {
+        if (err && err.name === 'AbortError') {
+          throw new Error('서버 응답이 너무 오래 걸립니다. 잠시 후 다시 시도해주세요.');
+        }
+        throw err;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function apiGet(params) { return apiCall(params); }
+    async function apiPost(payload) { return apiCall(payload); }
+
+    function showToast(message) {
+      const toast = document.getElementById('admin-toast');
+      toast.innerText = message;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 2500);
+    }
+
+    function setSync(text, ok) {
+      const el = document.getElementById('admin-sync');
+      el.innerText = text;
+      el.className = 'text-[11px] font-bold mb-4 ' + (ok ? 'text-emerald-600' : 'text-gray-400');
+    }
+
+    function saveAuth(pin) {
+      localStorage.setItem(CONFIG.AUTH_KEY, JSON.stringify({
+        pin: String(pin),
+        at: Date.now()
+      }));
+    }
+
+    function clearAuth() {
+      localStorage.removeItem(CONFIG.AUTH_KEY);
+    }
+
+    function readAuth() {
+      try {
+        const raw = localStorage.getItem(CONFIG.AUTH_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (!data || String(data.pin) !== CONFIG.ADMIN_PIN) {
+          clearAuth();
+          return null;
+        }
+        return data;
+      } catch (e) {
+        clearAuth();
+        return null;
+      }
+    }
+
+    async function enterDashboard(pin, silent) {
+      adminPin = String(pin);
+      saveAuth(adminPin);
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('dashboard-screen').classList.remove('hidden');
+      if (!silent) showToast('관리자 인증 완료');
+      await loadAdminData();
+    }
+
+    function logoutAdmin() {
+      clearAuth();
+      adminPin = '';
+      document.getElementById('dashboard-screen').classList.add('hidden');
+      document.getElementById('login-screen').classList.remove('hidden');
+      document.getElementById('pin-input').value = '';
+      showToast('로그아웃되었습니다');
+    }
+
+    async function checkPin() {
+      const pin = document.getElementById('pin-input').value;
+      const errorMsg = document.getElementById('login-error');
+
+      if (pin !== CONFIG.ADMIN_PIN) {
+        errorMsg.classList.remove('opacity-0');
+        document.getElementById('pin-input').value = '';
+        document.getElementById('pin-input').focus();
+        const loginBox = document.querySelector('#login-screen > div');
+        loginBox.style.transform = 'translateX(-10px)';
+        setTimeout(() => loginBox.style.transform = 'translateX(10px)', 50);
+        setTimeout(() => loginBox.style.transform = 'translateX(-10px)', 100);
+        setTimeout(() => loginBox.style.transform = 'translateX(10px)', 150);
+        setTimeout(() => loginBox.style.transform = 'translateX(0)', 200);
+        return;
+      }
+
+      await enterDashboard(pin, false);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const auth = readAuth();
+      if (auth) enterDashboard(auth.pin, true);
+    });
+
+    async function loadAdminData() {
+      setSync('시트 동기화 중...', false);
+      try {
+        const data = await apiGet({ action: 'adminBootstrap', pin: adminPin });
+        if (!data.ok) throw new Error(data.error || '로드 실패');
+
+        adminData = data;
+        document.getElementById('admin-notice').value = data.notice || '';
+        document.getElementById('admin-quota').value = data.quota || 9;
+        document.getElementById('admin-wash').value = data.washDate || '';
+        document.getElementById('stat-unreturned').innerHTML =
+          `${data.unreturned || 0}<span class="text-sm font-bold text-gray-500 ml-1 tracking-normal">명</span>`;
+
+        renderBookings();
+        renderBlacklist();
+        renderSuggestions();
+        setSync('Google Sheets 연결됨', true);
+      } catch (err) {
+        console.error(err);
+        setSync('시트 연결 실패 — setup.md 확인', false);
+        showToast('시트 연결 실패');
+        renderBookings();
+        renderBlacklist();
+        renderSuggestions();
+      }
+    }
+
+    async function saveSettings() {
+      try {
+        const data = await apiPost({
+          action: 'saveSettings',
+          pin: adminPin,
+          notice: document.getElementById('admin-notice').value,
+          quota: document.getElementById('admin-quota').value,
+          washDate: document.getElementById('admin-wash').value
+        });
+        if (!data.ok) throw new Error(data.error || '저장 실패');
+        showToast('설정 저장 완료 (시트 반영)');
+      } catch (err) {
+        showToast(String(err.message || err));
+      }
+    }
+
+    function setBookingFilter(filter) {
+      bookingFilter = filter;
+      document.querySelectorAll('.booking-filter').forEach((btn) => {
+        btn.className = 'booking-filter text-[11px] font-bold py-2 rounded-lg bg-gray-100 text-gray-600';
+      });
+      const active = document.getElementById('filter-' + filter);
+      if (active) active.className = 'booking-filter text-[11px] font-bold py-2 rounded-lg bg-blue-600 text-white';
+      renderBookings();
+    }
+
+    function getFilteredBookings() {
+      const all = (adminData.bookings || []).map((b) => ({
+        ...b,
+        date: toYmd(b.date) || b.date
+      }));
+      const today = adminData.today || toYmd(new Date());
+
+      if (bookingFilter === 'today') {
+        return all.filter((b) => b.date === today);
+      }
+      if (bookingFilter === 'upcoming') {
+        return all.filter((b) => String(b.status) === '예약완료' && b.date >= today)
+          .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      }
+      if (bookingFilter === 'unreturned') {
+        return all.filter((b) => String(b.status) === '예약완료' && b.date < today)
+          .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      }
+      return all.slice().reverse();
+    }
+
+    function renderBookings() {
+      const container = document.getElementById('booking-list');
+      const bookings = getFilteredBookings();
+      const labels = { upcoming: '예정', today: '오늘', unreturned: '미반납', all: '전체' };
+      document.getElementById('today-count-badge').innerText = `${labels[bookingFilter] || ''} ${bookings.length}명`;
+
+      if (bookings.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center bg-white flex flex-col items-center">
+            <span class="text-3xl mb-2 opacity-60">📭</span>
+            <p class="font-bold text-sm text-gray-500">해당 조건의 예약이 없습니다.</p>
+            <p class="text-[11px] text-gray-400 font-medium mt-1">구글시트 <strong>예약</strong> 탭에서도 확인할 수 있습니다.</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = bookings.map((b) => {
+        const status = String(b.status || '');
+        let statusBadge = `<span class="text-blue-600 font-bold bg-blue-50 px-2.5 py-1 rounded text-[10px]">${status || '예약완료'}</span>`;
+        if (status === '예약취소') {
+          statusBadge = `<span class="text-red-500 font-bold bg-red-50 px-2.5 py-1 rounded text-[10px]">취소됨 (${b.cancelReason || '사유없음'})</span>`;
+        } else if (status === '반납완료') {
+          statusBadge = `<span class="text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded text-[10px]">반납완료</span>`;
+        }
+
+        const manageBtn = status === '예약완료'
+          ? `<button onclick="markReturned('${String(b.id).replace(/'/g, '')}')" class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs py-2.5 rounded-lg font-bold hover:bg-gray-100 transition shadow-sm">반납 처리</button>`
+          : `<button disabled class="w-full bg-gray-50 border border-gray-100 text-gray-400 text-xs py-2.5 rounded-lg font-bold">처리 완료</button>`;
+
+        return `
+          <div class="p-4 bg-white">
+            <div class="flex justify-between items-start mb-2">
+              <span class="font-extrabold text-gray-900 text-sm tracking-tight">${b.studentId || ''} ${b.name || ''}</span>
+              ${statusBadge}
+            </div>
+            <p class="text-xs text-gray-500 font-medium mb-3">📞 ${b.phone || '-'} <br> ⏰ ${formatKoShort(b.date)} ${b.time || ''}</p>
+            ${manageBtn}
+          </div>`;
+      }).join('');
+    }
+
+    async function markReturned(bookingId) {
+      try {
+        const data = await apiPost({
+          action: 'updateBookingStatus',
+          pin: adminPin,
+          bookingId,
+          status: '반납완료'
+        });
+        if (!data.ok) throw new Error(data.error || '처리 실패');
+        showToast('반납 처리 완료');
+        await loadAdminData();
+      } catch (err) {
+        showToast(String(err.message || err));
+      }
+    }
+
+    function renderBlacklist() {
+      const container = document.getElementById('blacklist-container');
+      const blacklist = adminData.blacklist || [];
+
+      if (blacklist.length === 0) {
+        container.innerHTML = `
+          <div class="p-6 text-center bg-white">
+            <p class="text-sm font-bold text-gray-400">현재 페널티 인원이 없습니다.</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = blacklist.map((item) => `
+        <div class="p-4 bg-white flex items-center justify-between">
+          <div>
+            <p class="font-extrabold text-gray-900 text-sm mb-1">${item.studentId}</p>
+            <p class="font-bold text-red-500 text-[11px]">${item.reason} <span class="text-gray-400 ml-1">(${item.date || ''})</span></p>
+          </div>
+          <button onclick="removePenalty('${String(item.studentId).replace(/'/g, '')}')" class="text-gray-500 hover:text-gray-800 bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg text-xs font-bold transition shadow-sm">해제</button>
+        </div>
+      `).join('');
+    }
+
+    async function addPenalty() {
+      const id = document.getElementById('penalty-id').value.trim();
+      const reason = document.getElementById('penalty-reason').value.trim();
+      if (!id || !reason) {
+        showToast('학번과 사유를 모두 입력해주세요.');
+        return;
+      }
+      try {
+        const data = await apiPost({
+          action: 'addPenalty',
+          pin: adminPin,
+          studentId: id,
+          reason
+        });
+        if (!data.ok) throw new Error(data.error || '부과 실패');
+        document.getElementById('penalty-id').value = '';
+        document.getElementById('penalty-reason').value = '';
+        adminData.blacklist = data.blacklist || [];
+        renderBlacklist();
+        showToast('페널티 부여 완료');
+      } catch (err) {
+        showToast(String(err.message || err));
+      }
+    }
+
+    async function removePenalty(studentId) {
+      try {
+        const data = await apiPost({
+          action: 'removePenalty',
+          pin: adminPin,
+          studentId
+        });
+        if (!data.ok) throw new Error(data.error || '해제 실패');
+        adminData.blacklist = data.blacklist || [];
+        renderBlacklist();
+        showToast('페널티 해제 완료');
+      } catch (err) {
+        showToast(String(err.message || err));
+      }
+    }
+
+    function renderSuggestions() {
+      const container = document.getElementById('suggestions-container');
+      const suggestions = adminData.suggestions || [];
+
+      if (suggestions.length === 0) {
+        container.innerHTML = `
+          <div class="p-6 text-center bg-white">
+            <p class="text-sm font-bold text-gray-400">새로운 건의사항이 없습니다.</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = suggestions.map((item) => {
+        let dateText = item.createdAt || '';
+        try {
+          if (item.createdAt) dateText = new Date(item.createdAt).toLocaleString('ko-KR');
+        } catch (e) {}
+        return `
+          <div class="p-4 bg-white">
+            <p class="text-[10px] text-gray-400 font-bold mb-1">${dateText}</p>
+            <p class="text-sm font-medium text-gray-900 leading-relaxed">${String(item.content || '').replace(/</g, '&lt;')}</p>
+          </div>`;
+      }).join('');
+    }
+
+    function downloadCsv() {
+      const rows = adminData.bookings || [];
+      if (!rows.length) {
+        showToast('다운로드할 예약이 없습니다.');
+        return;
+      }
+      const headers = ['id', 'date', 'time', 'studentId', 'name', 'phone', 'status', 'cancelReason', 'createdAt'];
+      const lines = [headers.join(',')];
+      rows.forEach((b) => {
+        lines.push(headers.map((h) => {
+          const v = String(b[h] == null ? '' : b[h]).replace(/"/g, '""');
+          return `"${v}"`;
+        }).join(','));
+      });
+      const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `blanket_bookings_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('CSV 다운로드 시작');
+    }
+  </script>
+</body>
+</html>
