@@ -1,8 +1,86 @@
-공용담요 Front
-https://ksb26-hue.github.io/kongrung/code_artifact_front.html
+# 🧣 공릉중학교 담요 공용제
 
-admin
-https://ksb26-hue.github.io/kongrung/code_artifact_admin.html
+> 추운 날, 담요 줄 서서 기다리기 싫어서 만들었어요.  
+> **중2 학생회**가 직접 만든 모바일 예약 페이지입니다.
 
-스프레드시트
-https://docs.google.com/spreadsheets/d/1xnmsPFoRoRpNiNYMSjDWAxBuEY17yXBZuSp0VP5Bqz8/edit?gid=765356207#gid=765356207
+휴대폰으로 날짜 찍고 → 시간 고르고 → 예약 끝.  
+데이터는 구글 시트에 자동으로 쌓여요.
+
+---
+
+## 🔗 바로가기
+
+| | 링크 |
+|---|---|
+| 🎓 **학생용 (Front)** | https://ksb26-hue.github.io/kongrung/code_artifact_front.html |
+| 🛠️ **관리자 (Admin)** | https://ksb26-hue.github.io/kongrung/code_artifact_admin.html |
+| 📊 **구글 시트 DB** | [스프레드시트 열기](https://docs.google.com/spreadsheets/d/1xnmsPFoRoRpNiNYMSjDWAxBuEY17yXBZuSp0VP5Bqz8/edit?gid=765356207#gid=765356207) |
+
+---
+
+## ✨ 학생 페이지에서 할 수 있는 것
+
+### 📅 달력으로 한눈에 예약
+- **오늘**은 파란색으로 표시
+- 날짜마다 **잔여 담요 수** (`잔여 3/9`) 표시
+- 다 빌려가면 → **마감**
+- 방문 교시(아침·점심)가 지나면 오늘도 **마감**
+- 토·일은 **주말**이라 예약 불가
+
+### ⏰ 방문 교시 선택
+- 아침시간 `08:40`
+- 점심시간 `01:00`
+- 이미 지난 시간은 `(마감)` 처리
+
+### 📢 실시간 공지 · 세탁일 · 날씨
+- 학생회 공지사항
+- 최근 세탁 / 소독일
+- 오늘 날씨 (살짝 보너스)
+
+### 🧾 내 예약 확인 / 취소
+- 같은 폰이면 예약이 바로 보여요
+- 학번으로도 조회 가능
+- 잘못 예약했으면 취소도 OK
+
+### 🚨 익명 건의함
+- 담요 훼손 신고
+- 불편한 점 자유롭게 남기기  
+  (이름 안 나와요)
+
+---
+
+## 📖 이용 규칙 (프론트에도 그대로 있어요)
+
+1. 1인 1일 1회, **주 2회**까지
+2. **토·일 예약 불가**
+3. 빌린 날은 **종례 전까지 반납**
+4. 무단 연체·훼손 → **2주 정지**
+
+---
+
+## 🧩 어떻게 동작하나요?
+
+```
+휴대폰 화면 (HTML)
+        ↕️
+Google Apps Script (API)
+        ↕️
+구글 스프레드시트 (DB)
+```
+
+- 화면: `code_artifact_front.html`
+- 관리: `code_artifact_admin.html`
+- 서버 역할: `blanket-Code.gs` (시트에 읽고 쓰기)
+
+코딩 + 시트만으로  
+**앱 설치 없이** 학교 담요 예약을 돌릴 수 있게 만들었습니다.
+
+---
+
+## 🛠️ 만든 사람
+
+**공릉중학교 학생회 · 중2**  
+학교 생활이 조금 더 편해지라고, 직접 만들어 본 프로젝트예요.
+
+> 버그 발견하거나 아이디어 있으면  
+> 프론트 하단 **익명 건의함**으로 보내주세요! 🙌
