@@ -351,8 +351,10 @@
       appState.notice = data.notice || '';
       appState.washDate = data.washDate || '-';
       appState.quota = Number(data.quota) || 9;
-      appState.year = Number(data.year) || new Date().getFullYear();
-      appState.month = Number(data.month) || (new Date().getMonth() + 1);
+      // 캘린더는 시트 연/월 설정 없이 항상 현재일 기준
+      const now = new Date();
+      appState.year = now.getFullYear();
+      appState.month = now.getMonth() + 1;
       appState.counts = normalizeCounts(data.counts || {});
       myBooking = data.myBooking || null;
       if (myBooking && myBooking.date) myBooking.date = toYmd(myBooking.date) || myBooking.date;
@@ -387,6 +389,28 @@
       return Math.max(0, appState.quota - used);
     }
 
+    /** 해당 날짜의 방문 교시(아침/점심)가 모두 지났는지 */
+    function isVisitPeriodClosed(ymd) {
+      const today = todayYmd();
+      if (ymd < today) return true;
+      if (ymd > today) return false;
+      const now = new Date();
+      return now.getHours() >= 13; // 점심 01:00 이후면 당일 교시 전부 마감
+    }
+
+    function visitSlotStatus(ymd) {
+      const morningClosed = { key: 'morning', closed: false };
+      const lunchClosed = { key: 'lunch', closed: false };
+      if (ymd === todayYmd()) {
+        const now = new Date();
+        const hour = now.getHours();
+        const min = now.getMinutes();
+        if (hour > 8 || (hour === 8 && min >= 40)) morningClosed.closed = true;
+        if (hour >= 13) lunchClosed.closed = true;
+      }
+      return { morning: morningClosed.closed, lunch: lunchClosed.closed, allClosed: morningClosed.closed && lunchClosed.closed };
+    }
+
     function renderCalendar() {
       const grid = document.getElementById('calendar-grid');
       grid.innerHTML = '';
@@ -404,8 +428,9 @@
       for (let day = 1; day <= daysInMonth; day++) {
         const ymd = `${year}-${pad2(month)}-${pad2(day)}`;
         const left = remainingFor(ymd);
+        const periodClosed = isVisitPeriodClosed(ymd);
 
-        if (ymd < today) {
+        if (ymd < today || periodClosed) {
           grid.innerHTML += `
             <div class="rounded-xl p-2 flex flex-col items-center justify-center min-h-[55px] bg-gray-50 text-gray-400 opacity-60">
               <span class="font-bold text-[13px]">${day}</span>
@@ -429,7 +454,7 @@
           grid.innerHTML += `
             <div class="rounded-xl p-2 flex flex-col items-center justify-center min-h-[55px] bg-gray-100 text-gray-400">
               <span class="font-bold text-[13px]">${day}</span>
-              <span class="text-[9px] font-bold mt-0.5 tracking-tighter">마감 0/${appState.quota}</span>
+              <span class="text-[9px] font-bold mt-0.5 tracking-tighter">마감</span>
             </div>`;
         } else if (ymd === today) {
           grid.innerHTML += `
@@ -456,6 +481,10 @@
         customAlert('토요일·일요일은 예약할 수 없습니다.', '주말 휴무', '📅');
         return;
       }
+      if (isVisitPeriodClosed(ymd)) {
+        customAlert('오늘 방문 교시가 모두 마감되었습니다.\n내일 이후 날짜를 선택해주세요.', '교시 마감', '⏳');
+        return;
+      }
       if (remainingFor(ymd) <= 0) {
         customAlert('해당 날짜 잔여 담요가 없습니다.', '마감', '⏳');
         return;
@@ -467,29 +496,13 @@
 
       const select = document.getElementById('time-select');
       const warning = document.getElementById('time-warning');
+      const slots = visitSlotStatus(ymd);
       select.value = '';
-      select.options[1].disabled = false;
-      select.options[1].text = '아침시간 08:40';
-      select.options[2].disabled = false;
-      select.options[2].text = '점심시간 01:00';
-      warning.classList.add('hidden');
-
-      if (ymd === todayYmd()) {
-        const now = new Date();
-        const hour = now.getHours();
-        const min = now.getMinutes();
-        if (hour > 8 || (hour === 8 && min >= 40)) {
-          select.options[1].disabled = true;
-          select.options[1].text = '아침시간 08:40 (마감)';
-        }
-        if (hour >= 13) {
-          select.options[2].disabled = true;
-          select.options[2].text = '점심시간 01:00 (마감)';
-        }
-        if (select.options[1].disabled || select.options[2].disabled) {
-          warning.classList.remove('hidden');
-        }
-      }
+      select.options[1].disabled = slots.morning;
+      select.options[1].text = slots.morning ? '아침시간 08:40 (마감)' : '아침시간 08:40';
+      select.options[2].disabled = slots.lunch;
+      select.options[2].text = slots.lunch ? '점심시간 01:00 (마감)' : '점심시간 01:00';
+      warning.classList.toggle('hidden', !(slots.morning || slots.lunch));
     }
 
     async function submitBooking() {
@@ -683,7 +696,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       fetchWeather();
-      // 시트 year/month 오기 전에도 현재 달 표시
+      // 현재 달 표시
       appState.year = new Date().getFullYear();
       appState.month = new Date().getMonth() + 1;
       document.getElementById('calendar-title').innerText = `${appState.year}년 ${appState.month}월`;
