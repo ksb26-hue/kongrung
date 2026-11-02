@@ -429,15 +429,16 @@
         const ymd = `${year}-${pad2(month)}-${pad2(day)}`;
         const left = remainingFor(ymd);
         const periodClosed = isVisitPeriodClosed(ymd);
+        const isToday = ymd === today;
 
-        if (ymd < today || periodClosed) {
+        if (ymd < today) {
           grid.innerHTML += `
             <div class="rounded-xl p-2 flex flex-col items-center justify-center min-h-[55px] bg-gray-50 text-gray-400 opacity-60">
               <span class="font-bold text-[13px]">${day}</span>
               <span class="text-[9px] font-bold mt-0.5 tracking-tighter">마감</span>
             </div>`;
         } else if (isWeekend(ymd)) {
-          if (ymd === today) {
+          if (isToday) {
             grid.innerHTML += `
               <div class="rounded-xl p-2 flex flex-col items-center justify-center min-h-[55px] bg-blue-600 text-white shadow-md">
                 <span class="font-extrabold text-[13px]">${day}</span>
@@ -450,13 +451,22 @@
                 <span class="text-[9px] font-bold mt-0.5 tracking-tighter">주말</span>
               </div>`;
           }
-        } else if (left <= 0) {
-          grid.innerHTML += `
-            <div class="rounded-xl p-2 flex flex-col items-center justify-center min-h-[55px] bg-gray-100 text-gray-400">
-              <span class="font-bold text-[13px]">${day}</span>
-              <span class="text-[9px] font-bold mt-0.5 tracking-tighter">마감</span>
-            </div>`;
-        } else if (ymd === today) {
+        } else if (periodClosed || left <= 0) {
+          // 오늘 마감은 파란 배경 유지
+          if (isToday) {
+            grid.innerHTML += `
+              <div class="rounded-xl p-2 flex flex-col items-center justify-center min-h-[55px] bg-blue-600 text-white shadow-md">
+                <span class="font-extrabold text-[13px]">${day}</span>
+                <span class="text-[9px] font-bold text-blue-100 mt-0.5 tracking-tighter">마감</span>
+              </div>`;
+          } else {
+            grid.innerHTML += `
+              <div class="rounded-xl p-2 flex flex-col items-center justify-center min-h-[55px] bg-gray-100 text-gray-400">
+                <span class="font-bold text-[13px]">${day}</span>
+                <span class="text-[9px] font-bold mt-0.5 tracking-tighter">마감</span>
+              </div>`;
+          }
+        } else if (isToday) {
           grid.innerHTML += `
             <div onclick="openBookingModal('${ymd}')" class="rounded-xl p-2 flex flex-col items-center justify-center min-h-[55px] bg-blue-600 text-white cursor-pointer shadow-md transform transition active:scale-95">
               <span class="font-extrabold text-[13px]">${day}</span>
