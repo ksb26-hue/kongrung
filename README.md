@@ -12,9 +12,9 @@
 
 | | 링크 |
 |---|---|
-| 🎓 **학생용 (Front)** | https://ksb26-hue.github.io/kongrung/code_artifact_front.html |
-| 🛠️ **관리자 (Admin)** | https://ksb26-hue.github.io/kongrung/code_artifact_admin.html |
-| 📊 **구글 시트 DB** | [스프레드시트 열기](https://docs.google.com/spreadsheets/d/1xnmsPFoRoRpNiNYMSjDWAxBuEY17yXBZuSp0VP5Bqz8/edit?gid=765356207#gid=765356207) |
+| 🎓 **학생용 (Front)** | <a href="https://ksb26-hue.github.io/kongrung/code_artifact_front.html" target="_blank" rel="noopener noreferrer">학생 페이지 열기</a> |
+| 🛠️ **관리자 (Admin)** | <a href="https://ksb26-hue.github.io/kongrung/code_artifact_admin.html" target="_blank" rel="noopener noreferrer">관리자 페이지 열기</a> |
+| 📊 **구글 시트 DB** | <a href="https://docs.google.com/spreadsheets/d/1xnmsPFoRoRpNiNYMSjDWAxBuEY17yXBZuSp0VP5Bqz8/edit?gid=765356207#gid=765356207" target="_blank" rel="noopener noreferrer">스프레드시트 열기</a> |
 
 ---
 
